@@ -1,4 +1,5 @@
 from email import message
+import re
 from aiogram import Bot, Dispatcher, executor, types, utils
 from buttons import main_buttons, day_result_buttons
 from tasks import pack, unpack, SergeyClass
@@ -14,7 +15,6 @@ dp = Dispatcher(bot)
 async def greet_sergey(message:types.Message):
     if 'Sergey' not in shelve.open('user/' + str(message.from_user.id)):
         pack(str(message.from_user.id), 'Sergey', SergeyClass())
-    print(message.from_user.full_name)
     await message.answer('Привет, Серег.\nВ курс дела тебя вводить не придется, что хочешь сделать?', reply_markup=main_buttons())
 
 @dp.message_handler(commands=['help'])
@@ -22,12 +22,65 @@ async def assist(message:types.Message):
     help_text = '''Здраствуйте, я ваш личный бот-журнал.
 Я помогу вам следить за своими делами на протяжении своей работы.
 Для того, что бы добавить задание, введите:
-+ "Задание"
+/add_task "Задание"
 Если вы хотите дать задание только на сегодня, пропишите: 
-+ad "Задание".
-
+/add_td_task "Задание".
 Приятного пользования!)'''
     await message.answer(help_text)
+
+@dp.message_handler(commands=['add_task'])
+async def create_task(message:types.Message):
+    task = ' '.join(message.text.split()[1:])
+
+    if not task:
+        await message.answer('Предлагаю добавить название задания😌')
+        return
+
+    user = str(message.from_user.id)
+    Sergey = unpack(user, 'Sergey')
+
+    if task in Sergey.tasks:
+        await message.answer('Такое задание уже существует')
+        return
+
+    msg = Sergey.new_task(task)
+    await message.answer(msg)
+    pack(user, 'Sergey', Sergey)
+
+@dp.message_handler(commands=['add_td_task'])
+async def create_td_task(message:types.Message):
+    task = ' '.join(message.text.split()[1:])
+
+    if not task:
+        await message.answer('Предлагаю добавить название задания😌')
+        return
+
+    user = str(message.from_user.id)
+    Sergey = unpack(user, 'Sergey')
+
+    if task in Sergey.current_day.tasks:
+        await message.answer('Такое задание уже существует')
+        return
+
+    msg = Sergey.current_day.add_task(task)
+    await message.answer(msg)
+    pack(user, 'Sergey', Sergey)
+
+@dp.message_handler(commands=['del_task'])
+async def del_task(message:types.Message):
+    user = str(message.from_user.id)
+    Sergey = unpack(user, 'Sergey')
+    msg = Sergey.delete_task(' '.join(message.text.split()[1:]))
+    await message.answer(msg)
+    pack(user, 'Sergey', Sergey)
+    
+@dp.message_handler(commands=['del_td_task'])
+async def del_task(message:types.Message):
+    user = str(message.from_user.id)
+    Sergey = unpack(user, 'Sergey')
+    msg = Sergey.current_day.delete_task(' '.join(message.text.split()[1:]))
+    await message.answer(msg)
+    pack(user, 'Sergey', Sergey)
 
 @dp.message_handler(commands=['new'])
 async def new_Sergey(message:types.Message):
@@ -52,19 +105,9 @@ async def Education_bot(message:types.Message):
     
     elif text == 'Закончить день':
         await end_Sergeys_day(message, Sergey)
-    
-    elif text[0] == '+':
-        await create_task(message, Sergey)
-
 
     pack(sergey_id, 'Sergey', Sergey)
 
-async def create_task(message:types.Message, Sergey:SergeyClass):
-    if message.text[:3] == '+ad':
-        msg = Sergey.current_day.add_task(message.text[4:])
-    else:
-        msg = Sergey.new_task(message.text[2:])
-    await message.answer(msg, reply_markup=main_buttons())
 
 @dp.callback_query_handler(lambda x: x.data in unpack(str(x.from_user.id), 'Sergey').current_day.tasks)
 async def day_result(callback:types.CallbackQuery):
