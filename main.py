@@ -19,12 +19,17 @@ async def greet_sergey(message:types.Message):
 
 @dp.message_handler(commands=['help'])
 async def assist(message:types.Message):
-    help_text = 'Бот, который помогает Сергеям наконец то взятся за ум \
-и хранить статистику по дням.\nС момента запуска день уже начался, так что тыкай на кнопку "подвести итоги", и смотри дальше по функционалу.\n\
-После того как тыкнешь "закончить день", появится статистика о первом дне!\n\nКороче, проверяй)'
+    help_text = '''Здраствуйте, я ваш личный бот-журнал.
+Я помогу вам следить за своими делами на протяжении своей работы.
+Для того, что бы добавить задание, введите:
++ "Задание"
+Если вы хотите дать задание только на сегодня, пропишите: 
++ad "Задание".
+
+Приятного пользования!)'''
     await message.answer(help_text)
 
-@dp.message_handler(commands=['new_sergey'])
+@dp.message_handler(commands=['new'])
 async def new_Sergey(message:types.Message):
     await message.answer('Хитрюга)')
     pack(str(message.from_user.id), 'Sergey', SergeyClass())
@@ -47,10 +52,21 @@ async def Education_bot(message:types.Message):
     
     elif text == 'Закончить день':
         await end_Sergeys_day(message, Sergey)
+    
+    elif text[0] == '+':
+        await create_task(message, Sergey)
+
 
     pack(sergey_id, 'Sergey', Sergey)
 
-@dp.callback_query_handler(lambda x: x.data in unpack(str(x.from_user.id), 'Sergey').tasks)
+async def create_task(message:types.Message, Sergey:SergeyClass):
+    if message.text[:3] == '+ad':
+        msg = Sergey.current_day.add_task(message.text[4:])
+    else:
+        msg = Sergey.new_task(message.text[2:])
+    await message.answer(msg, reply_markup=main_buttons())
+
+@dp.callback_query_handler(lambda x: x.data in unpack(str(x.from_user.id), 'Sergey').current_day.tasks)
 async def day_result(callback:types.CallbackQuery):
     Sergey = unpack(str(callback.from_user.id), 'Sergey')
 
@@ -69,6 +85,11 @@ async def start_Sergeys_day(message:types.Message, Sergey:SergeyClass):
 
 async def Sergey_day_results(message:types.Message, Sergey:SergeyClass):
     tasks = Sergey.current_day.tasks
+
+    if len(tasks) == 0:
+        await message.answer('Может, сначала задание добавишь?)')
+        return
+
     if list(tasks.values()).count('✖️') != 0:
         await bot.send_message(message.from_user.id, 'Да, ну и что ты за сегодня сделал?', reply_markup=day_result_buttons(list(Sergey.current_day.tasks.keys()), Sergey))
     else:

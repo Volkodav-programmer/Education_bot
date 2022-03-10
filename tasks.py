@@ -12,7 +12,12 @@ class Day:
         return 'Моя ты умничка ;)'
 
     def add_task(self, task):
-        self.tasks[task] = '✖️'
+        if len(task) <= 16:
+            self.tasks[task] = '✖️'
+            msg = 'Задание на сегодня успешно добавлено'
+        else:
+            msg = 'Длина задания не должна превышать 16 символов'
+        return msg
 
     def __str__(self):
         return self.date
@@ -21,9 +26,8 @@ class SergeyClass:
 
     def __init__(self) -> None:
         self.days = []
-        self.tasks = ['Программирование']
+        self.tasks = []
         self.current_day = Day(self.tasks)
-        self.creating_task = False
 
     def start_day(self):
         self.current_day = Day()
@@ -31,6 +35,15 @@ class SergeyClass:
     def end_day(self):
         self.current_day.is_ended = True
         self.days.append(self.current_day)
+
+    def new_task(self, task):
+        if len(task) <= 16:
+            self.tasks.append(task)
+            self.current_day.add_task(task)
+            msg = 'Задание успешно добавлено'
+        else:
+            msg = 'Длина задания не должна превышать 16 символов'
+        return msg
 
     def show_stat(self):
         text = ''
