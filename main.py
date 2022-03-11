@@ -3,10 +3,10 @@ import re
 from aiogram import Bot, Dispatcher, executor, types, utils
 from buttons import main_buttons, day_result_buttons
 from tasks import pack, unpack, SergeyClass
+from config import TOKEN
 from datetime import datetime
 import shelve
 
-TOKEN = '5269150721:AAFUSuiy9_LOSar6Ab3Ce9J7DWAiQGsaXrc'
 
 bot = Bot(TOKEN)
 dp = Dispatcher(bot)
